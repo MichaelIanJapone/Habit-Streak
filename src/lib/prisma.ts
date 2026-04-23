@@ -1,6 +1,7 @@
 import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
+import { readDatabaseUrlFromEnv } from "@/lib/database-url";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -8,9 +9,11 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPool(): Pool {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = readDatabaseUrlFromEnv();
   if (!connectionString) {
-    throw new Error("DATABASE_URL is not set. Use a PostgreSQL URL (e.g. from Neon) locally and on Vercel.");
+    throw new Error(
+      "DATABASE_URL is missing or empty. Set it in .env or Vercel to a postgresql:// URL (no wrapping quotes).",
+    );
   }
   return new Pool({
     connectionString,

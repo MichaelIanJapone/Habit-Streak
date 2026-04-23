@@ -99,7 +99,7 @@ prisma/
 1. Create a database on [Neon](https://neon.tech) and copy two connection strings when available:
    - **Pooled** → `DATABASE_URL` (app queries)
    - **Direct** (host without `-pooler`) → `DIRECT_URL` (`prisma migrate deploy` needs this; avoids “permission denied for schema public” errors from the pooler)
-2. In Vercel → **Settings → Environment Variables**, set `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, and `AUTH_URL` (your `https://….vercel.app` site).
+2. In Vercel → **Settings → Environment Variables**, set `DATABASE_URL`, `DIRECT_URL` (optional; if you add it, it must be a full `postgresql://…` string — **do not leave it empty**), `AUTH_SECRET`, and `AUTH_URL` (your `https://….vercel.app` site). Paste the value **without** extra quotes around the whole URL.
 3. **Build Command:** `npm run vercel-build`
 4. Redeploy.
 

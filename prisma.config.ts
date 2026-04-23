@@ -3,9 +3,28 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
-/** Migrations must hit Postgres directly (not PgBouncer pooler). Prefer DIRECT_URL; else DATABASE_URL. */
+/**
+ * Read a DB URL from env: trim, strip accidental quotes/newlines, ignore empty.
+ * Prisma expects `postgresql://` (normalize `postgres://`).
+ */
+function readConnectionUrl(varName: string): string | undefined {
+  const raw = process.env[varName];
+  if (raw == null) return undefined;
+  let s = raw.trim().replace(/\r\n|\r|\n/g, "");
+  if (s.length === 0) return undefined;
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    s = s.slice(1, -1).trim();
+  }
+  if (s.length === 0) return undefined;
+  if (s.startsWith("postgres://") && !s.startsWith("postgresql://")) {
+    s = `postgresql://${s.slice("postgres://".length)}`;
+  }
+  return s;
+}
+
+/** Migrations: prefer direct Neon URL; must not be empty or Prisma gets P1013. */
 function migrationDatabaseUrl(): string | undefined {
-  return process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"];
+  return readConnectionUrl("DIRECT_URL") ?? readConnectionUrl("DATABASE_URL");
 }
 
 export default defineConfig({
