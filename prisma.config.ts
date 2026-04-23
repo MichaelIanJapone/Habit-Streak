@@ -3,12 +3,17 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+/** Migrations must hit Postgres directly (not PgBouncer pooler). Prefer DIRECT_URL; else DATABASE_URL. */
+function migrationDatabaseUrl(): string | undefined {
+  return process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"];
+}
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    url: migrationDatabaseUrl(),
   },
 });
