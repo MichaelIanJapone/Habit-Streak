@@ -103,10 +103,28 @@ prisma/
 3. **Build Command:** `npm run vercel-build`
 4. Redeploy.
 
-If migrations still fail, open **Neon → SQL Editor** (as owner) and run:
+### “permission denied for schema public” on `vercel-build`
 
-```sql
-GRANT USAGE, CREATE ON SCHEMA public TO CURRENT_USER;
-```
+1. **Confirm `DIRECT_URL` on Vercel** is the **direct** host (no `-pooler` in the hostname). If unsure, delete `DIRECT_URL` and set **only** `DATABASE_URL` to the **direct** string (pooling **off** in Neon’s Connect panel) so migrations and the app both use a direct connection.
 
-Then redeploy.
+2. In Neon: **SQL Editor** → select the same database as in your URL → run the script in **`prisma/neon-grant-public.sql`** (edit the role name if yours is not `neondb_owner`).
+
+3. Redeploy on Vercel.
+
+### “P3005 — database schema is not empty” (baseline)
+
+Your Neon database **already has tables** (e.g. from an earlier failed deploy), but Prisma’s migration history does not match, so `prisma migrate deploy` refuses to run.
+
+**Pick one:**
+
+1. **Clean slate (simplest)** — In Neon, **reset the branch** or drop all tables in `public` (only if you can lose that data). Then redeploy; `migrate deploy` will apply `20260423140000_init` on an empty DB.
+
+2. **Baseline (keep existing DB)** — Only if the tables **already match** this repo’s schema (`User`, `Habit`, `HabitEntry`). On your machine, point `.env` at Neon (`DATABASE_URL` + `DIRECT_URL` direct), then run once:
+
+   ```bash
+   npm run db:baseline
+   ```
+
+   That records `20260423140000_init` as applied **without** re-running SQL. Then redeploy on Vercel.
+
+If the live schema does **not** match the app (wrong columns / old experiments), use option **1** or fix the schema before baselining.
