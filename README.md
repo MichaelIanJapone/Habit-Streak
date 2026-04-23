@@ -131,3 +131,17 @@ Your Neon database **already has tables** (e.g. from an earlier failed deploy), 
    That records `20260423140000_init` as applied **without** re-running SQL. Then redeploy on Vercel.
 
 If the live schema does **not** match the app (wrong columns / old experiments), use option **1** or fix the schema before baselining.
+
+### “P1002 — timed out” / advisory lock on `vercel-build`
+
+Prisma Migrate calls `pg_advisory_lock` so only one migration runs at a time. A **10s** timeout produces P1002 if the lock never succeeds.
+
+1. **`DIRECT_URL` on Vercel** must be the **direct** Neon host (no `-pooler`). If `DIRECT_URL` is missing, migrations fall back to `DATABASE_URL`; a **pooled** URL often cannot complete advisory locking reliably. Fix the env vars, then redeploy.
+2. **One migration at a time** — avoid overlapping Vercel redeploys, CI pipelines, and local `npm run db:deploy` against the same database while a build runs.
+3. **Neon cold start** — first query after idle can be slow; redeploy once or open the DB in the Neon console to wake compute, then build again.
+
+If it still times out after a direct `DIRECT_URL` and no concurrent migrates, set this **only on Vercel** (and optionally in local `.env` for migrate commands):
+
+`PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1`
+
+Prisma still runs migrations sequentially in one process; this only skips the database advisory lock (do **not** run two `migrate deploy` jobs against the same DB at once). See [Prisma: migrate advisory locking](https://pris.ly/d/migrate-advisory-locking).
