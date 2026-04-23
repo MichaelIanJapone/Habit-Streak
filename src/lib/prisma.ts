@@ -1,41 +1,37 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
 
-function sqliteFilePathFromEnv(): string {
-  const raw = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+  pgPool: Pool | undefined;
+};
 
-  if (!raw.startsWith("file:")) {
-    return path.isAbsolute(raw) ? raw : path.resolve(process.cwd(), raw);
+function createPool(): Pool {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error("DATABASE_URL is not set. Use a PostgreSQL URL (e.g. from Neon) locally and on Vercel.");
   }
-
-  const rest = raw.slice("file:".length);
-
-  if (rest.startsWith("//")) {
-    try {
-      return fileURLToPath(new URL(raw));
-    } catch {
-      /* fall through to relative handling */
-    }
-  }
-
-  if (rest.startsWith("/") || /^[A-Za-z]:/.test(rest)) {
-    return rest;
-  }
-
-  return path.resolve(process.cwd(), rest.replace(/^\.\/?/, ""));
+  return new Pool({
+    connectionString,
+    max: process.env.VERCEL ? 5 : 10,
+    idleTimeoutMillis: 20_000,
+    connectionTimeoutMillis: 10_000,
+  });
 }
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
+function createPrismaClient(): PrismaClient {
+  const pool = globalForPrisma.pgPool ?? createPool();
+  if (process.env.NODE_ENV !== "production") globalForPrisma.pgPool = pool;
 
-const adapter = new PrismaBetterSqlite3({ url: sqliteFilePathFromEnv() });
+  const adapter = new PrismaPg(pool);
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+  return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
