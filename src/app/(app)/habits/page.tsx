@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
 import { HabitsBoard } from "@/features/habits/components/habits-board";
 
+export const dynamic = "force-dynamic";
+
 export default async function HabitsPage() {
   const session = await auth();
   const userId = session?.user?.id;

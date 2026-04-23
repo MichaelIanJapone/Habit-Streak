@@ -117,7 +117,10 @@ Your Neon database **already has tables** (e.g. from an earlier failed deploy), 
 
 **Pick one:**
 
-1. **Clean slate (simplest)** — In Neon, **reset the branch** or drop all tables in `public` (only if you can lose that data). Then redeploy; `migrate deploy` will apply `20260423140000_init` on an empty DB.
+1. **Clean slate (simplest)** — Wipe `public` on Neon, then redeploy:
+   - **UI:** Neon → **Branches** → your branch (e.g. `main`) → **⋯** → **Reset** / **Reset from parent** (wording varies) — confirms data loss.
+   - **SQL:** Neon → **SQL Editor** → select database → run **`prisma/neon-reset-public.sql`** (edit `neondb_owner` if your role differs).  
+   Then **Redeploy** on Vercel so `migrate deploy` applies `20260423140000_init` on an empty schema.
 
 2. **Baseline (keep existing DB)** — Only if the tables **already match** this repo’s schema (`User`, `Habit`, `HabitEntry`). On your machine, point `.env` at Neon (`DATABASE_URL` + `DIRECT_URL` direct), then run once:
 

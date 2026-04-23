@@ -13,3 +13,15 @@ export function readDatabaseUrlFromEnv(): string | undefined {
   }
   return s;
 }
+
+/**
+ * Neon pooler (host contains `-pooler`) uses PgBouncer in transaction mode.
+ * Prisma + `pg` need `pgbouncer=true` so prepared statements are disabled (otherwise runtime queries can 500).
+ * @see https://www.prisma.io/docs/orm/prisma-client/setup-and-configuration/databases-connections/pgbouncer
+ */
+export function prepareRuntimeDatabaseUrl(url: string): string {
+  const isPooler = url.includes("-pooler.");
+  if (!isPooler || url.includes("pgbouncer=true")) return url;
+  const join = url.includes("?") ? "&" : "?";
+  return `${url}${join}pgbouncer=true`;
+}
